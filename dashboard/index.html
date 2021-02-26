@@ -1,0 +1,110 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Rpi Sensor Dashboard</title>
+
+    <!-- Bootstrap core CSS -->
+
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+	<!-- Latest compiled and minified JavaScript -->
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+    <style>
+    body {
+      padding-top: 80px;
+    }
+    </style>
+  </head>
+
+  <body>
+
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Sensor Dashboard</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container">
+
+      <div class="row">
+        <div class="col-lg-4">
+          <div class="panel panel-primary">
+            <div class="panel-heading"><strong>Heat Service</strong></div>
+            <div class="panel-body">
+              <div class="epoch category20c" id="heat-sensor-service-chart" style="width: 300px; height: 200px"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="panel panel-primary">
+            <div class="panel-heading"><strong>Humidity Service</strong></div>
+            <div class="panel-body">
+              <div class="epoch category20c" id="humidity-sensor-service-chart" style="width: 300px; height: 200px"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="panel panel-primary">
+            <div class="panel-heading"><strong>Pressure Service</strong></div>
+            <div class="panel-body">
+              <div class="epoch category20c" id="pressure-sensor-service-chart" style="width: 300px; height: 200px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-lg-12">
+          <div class="panel panel-primary">
+            <div class="panel-heading"><strong>Codesys</strong></div>
+            <div class="panel-body" id="codesys">
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /.container -->
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/epoch/0.8.4/css/epoch.min.css"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
+    <script>
+
+      $('#codesys').load('/codesys');
+
+      var charts = {
+        "heat-sensor-service": $('#heat-sensor-service-chart').epoch({ type: 'time.area', axes: ['bottom', 'left'], data: [{label: 'Heat Sensor', values: [{time: 0, y: 0}]}]}),
+        "humidity-sensor-service": $('#humidity-sensor-service-chart').epoch({ type: 'time.area', axes: ['bottom', 'left'], data: [{label: 'Humidity Sensor', values: [{time: 0, y: 0}]}]}),
+        "pressure-sensor-service": $('#pressure-sensor-service-chart').epoch({ type: 'time.area', axes: ['bottom', 'left'], data: [{label: 'PRessure Sensor', values: [{time: 0, y: 0}]}]})
+      };
+
+      var socket = io.connect();
+      socket.on('sensor_data', function (data) {
+        charts[data.service].push([{time: new Date(data.created_date).getTime(), y: data.data}])
+      });
+    </script>
+  </body>
+</html>
