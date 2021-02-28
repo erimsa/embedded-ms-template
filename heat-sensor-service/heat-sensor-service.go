@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"time"
 
 	"github.com/go-redis/redis"
 	_ "github.com/googollee/go-socket.io"
+	elastic "github.com/olivere/elastic/v6"
 )
 
 // SensorData ...
@@ -25,7 +27,8 @@ const mapping = `{
 		"number_of_replicas": 0
 	},
     "mappings":{
-        "properties":{
+		"SensorData":{
+			"properties":{
                 "service":{
                     "type": "text"
                 },
@@ -35,18 +38,19 @@ const mapping = `{
                 "created":{
                     "type": "date"
                 }
-        }
+       		}
+		}
     }
 }`
 
 var sub *redis.Client
 var pub *redis.Client
 
-var client *elastic.Client
-
 var ctx context.Context
 
 var i int
+
+var client *elastic.Client
 
 func main() {
 
@@ -92,19 +96,11 @@ func main() {
 		//os.Exit(0)
 	}
 
-	{
-		var err error
-		client, err = elastic.NewClient(elastic.SetSniff(false), elastic.SetURL("http://elasticsearch:9200"))
-		if err != nil {
-			panic(err)
-		}
-	}
-	info, code, err := client.Ping("http://elasticsearch:9200").Do(ctx)
+	var err error
+	client, err = GetESClient()
 	if err != nil {
-		panic(err)
+		log.Fatalf("Error getting response: %s", err)
 	}
-
-	fmt.Printf("Elasticsearch returned with code %d and version %s\n", code, info.Version.Number)
 
 	exists, err := client.IndexExists("eliar").Do(ctx)
 	if err != nil {
@@ -162,7 +158,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	put1, err := client.Index().
 		Index("eliar").
-		Type("_doc").
+		Type("SensorData").
 		BodyJson(sensorData1).
 		Do(ctx)
 
@@ -170,4 +166,16 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	fmt.Printf("Indexed tweet %s to index %s, type %s\n", put1.Id, put1.Index, put1.Type)
+}
+
+func GetESClient() (*elastic.Client, error) {
+
+	client, err := elastic.NewClient(elastic.SetURL("http://elasticsearch:9200"),
+		elastic.SetSniff(false),
+		elastic.SetHealthcheck(false))
+
+	fmt.Println("ES initialized")
+
+	return client, err
+
 }
