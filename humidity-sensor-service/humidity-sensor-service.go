@@ -4,14 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"time"
 
 	"github.com/go-redis/redis"
-	elastic "gopkg.in/olivere/elastic.v5"
+	_ "github.com/googollee/go-socket.io"
+	"github.com/gorilla/mux"
+	elastic "github.com/olivere/elastic/v6"
+	"github.com/rs/cors"
 )
 
+// SensorData ...
 type SensorData struct {
 	Service string    `json:"service"` // Service : service adı
 	Data    int       `json:"data"`    // Data : servis datası
@@ -19,37 +24,39 @@ type SensorData struct {
 }
 
 const mapping = `{
-	"settings":{
+    "settings": {
 		"number_of_shards": 1,
 		"number_of_replicas": 0
 	},
-	"mappings":{
+    "mappings":{
 		"SensorData":{
 			"properties":{
-				"service":{
-					"type":"string"
-				},
-				"data":{
-					"type":"string"
-				},
-				"created":{
-					"type":"string"
-				}
-			}
+                "service":{
+                    "type": "text"
+                },
+                "data":{
+                    "type": "integer"
+                },
+                "created":{
+                    "type": "date"
+                }
+       		}
 		}
-	}
+    }
 }`
 
 var sub *redis.Client
 var pub *redis.Client
 
-var client *elastic.Client
-
 var ctx context.Context
 
 var i int
 
+var client *elastic.Client
+
 func main() {
+
+	r := mux.NewRouter()
 
 	ctx = context.Background()
 
@@ -93,19 +100,11 @@ func main() {
 		//os.Exit(0)
 	}
 
-	{
-		var err error
-		client, err = elastic.NewClient(elastic.SetSniff(false), elastic.SetURL("http://elasticsearch:9200"))
-		if err != nil {
-			panic(err)
-		}
-	}
-	info, code, err := client.Ping("http://elasticsearch:9200").Do(ctx)
+	var err error
+	client, err = GetESClient()
 	if err != nil {
-		panic(err)
+		log.Fatalf("Error getting response: %s", err)
 	}
-
-	fmt.Printf("Elasticsearch returned with code %d and version %s\n", code, info.Version.Number)
 
 	exists, err := client.IndexExists("eliar").Do(ctx)
 	if err != nil {
@@ -131,20 +130,15 @@ func main() {
 	subsub := sub.Subscribe("sensor_data")
 	defer subsub.Close()
 
-	/*
-		for i := 0; i < 10000000; i++ {
-			pub.Publish("sensor_data", strconv.Itoa(i))
+	handler := cors.Default().Handler(r)
 
-		}
-	*/
-
-	http.HandleFunc("/", handler)
+	r.HandleFunc("/", createindex)
 	//http.HandleFunc("/", handler)
-	http.ListenAndServe(":3001", nil)
+	http.ListenAndServe(":3001", handler)
 
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
+func createindex(w http.ResponseWriter, r *http.Request) {
 
 	i++
 
@@ -171,4 +165,16 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	fmt.Printf("Indexed tweet %s to index %s, type %s\n", put1.Id, put1.Index, put1.Type)
+}
+
+func GetESClient() (*elastic.Client, error) {
+
+	client, err := elastic.NewClient(elastic.SetURL("http://elasticsearch:9200"),
+		elastic.SetSniff(false),
+		elastic.SetHealthcheck(false))
+
+	fmt.Println("ES initialized")
+
+	return client, err
+
 }

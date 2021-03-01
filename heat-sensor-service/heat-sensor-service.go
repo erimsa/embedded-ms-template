@@ -11,7 +11,9 @@ import (
 
 	"github.com/go-redis/redis"
 	_ "github.com/googollee/go-socket.io"
+	"github.com/gorilla/mux"
 	elastic "github.com/olivere/elastic/v6"
+	"github.com/rs/cors"
 )
 
 // SensorData ...
@@ -53,6 +55,8 @@ var i int
 var client *elastic.Client
 
 func main() {
+
+	r := mux.NewRouter()
 
 	ctx = context.Background()
 
@@ -126,20 +130,15 @@ func main() {
 	subsub := sub.Subscribe("sensor_data")
 	defer subsub.Close()
 
-	/*
-		for i := 0; i < 10000000; i++ {
-			pub.Publish("sensor_data", strconv.Itoa(i))
+	handler := cors.Default().Handler(r)
 
-		}
-	*/
-
-	http.HandleFunc("/", handler)
+	r.HandleFunc("/", createindex)
 	//http.HandleFunc("/", handler)
-	http.ListenAndServe(":3000", nil)
+	http.ListenAndServe(":3000", handler)
 
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
+func createindex(w http.ResponseWriter, r *http.Request) {
 
 	i++
 
