@@ -1,3 +1,4 @@
 heat-sensor-service/heat-sensor-service
 humidity-sensor-service/humidity-sensor-service
 pressure-sensor-service/pressure-sensor-service
+dashboard/dashboard

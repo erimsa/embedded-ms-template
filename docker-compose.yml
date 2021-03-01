@@ -1,10 +1,26 @@
 version: '2'
 services:
+  dashboard:
+    image: dashboard
+    command: [./wait-for-it.sh, "redis:6379", "--",  "/dashboard"]
+    build:
+      context: "./dashboard"
+      dockerfile: Dockerfile   
+    ports:
+      - 8080:8080
+    depends_on:
+      - redis
+      - heat-sensor-service
+      - humidity-sensor-service
+      - pressure-sensor-service
+    links:
+      - redis
+      - elasticsearch
   heat-sensor-service:
     image: heat-sensor-service
     command: [./wait-for-it.sh, "elasticsearch:9200", "--",  "/heat-sensor-service"]
     build:
-      context: "./heat-sensor-service"
+      context: "./services/heat"
       dockerfile: Dockerfile   
     ports:
       - 3000:3000
@@ -18,7 +34,7 @@ services:
     image: humidity-sensor-service
     command: [./wait-for-it.sh, "elasticsearch:9200", "--",  "/humidity-sensor-service"]
     build:
-      context: "./humidity-sensor-service"
+      context: "./services/humidity"
       dockerfile: Dockerfile   
     ports:
       - 3001:3001
@@ -32,7 +48,7 @@ services:
     image: pressure-sensor-service
     command: [./wait-for-it.sh, "elasticsearch:9200", "--",  "/pressure-sensor-service"]
     build:
-      context: "./pressure-sensor-service"
+      context: "./services/pressure"
       dockerfile: Dockerfile   
     ports:
       - 3002:3002

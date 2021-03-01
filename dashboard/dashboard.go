@@ -24,7 +24,7 @@ var redisClient *redis.Client
 func main() {
 
 	redisClient = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     "redis:6379",
 		Password: "",
 		DB:       0,
 	})
@@ -33,7 +33,7 @@ func main() {
 	fmt.Println(pong, err)
 
 	pubsub := redisClient.Subscribe("sensor_data")
-	//defer pubsub.Close()
+	defer pubsub.Close()
 
 	msg := pubsub.Channel()
 
