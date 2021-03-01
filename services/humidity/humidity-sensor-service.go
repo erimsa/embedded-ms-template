@@ -106,13 +106,13 @@ func main() {
 		log.Fatalf("Error getting response: %s", err)
 	}
 
-	exists, err := client.IndexExists("eliar").Do(ctx)
+	exists, err := client.IndexExists("sensors").Do(ctx)
 	if err != nil {
 		panic(err)
 	}
 
 	if !exists {
-		createIndex, err := client.CreateIndex("eliar").BodyString(mapping).Do(ctx)
+		createIndex, err := client.CreateIndex("sensors").BodyString(mapping).Do(ctx)
 		if err != nil {
 			panic(err)
 		}
@@ -122,7 +122,7 @@ func main() {
 		}
 	}
 
-	_, err = client.Flush().Index("eliar").Do(ctx)
+	_, err = client.Flush().Index("sensors").Do(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -156,7 +156,7 @@ func createindex(w http.ResponseWriter, r *http.Request) {
 	pub.Publish("sensor_data", s)
 
 	put1, err := client.Index().
-		Index("eliar").
+		Index("sensors").
 		Type("SensorData").
 		BodyJson(sensorData1).
 		Do(ctx)
